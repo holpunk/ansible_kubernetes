@@ -1,0 +1,55 @@
+---
+- name: Tear Down — Local Kubernetes Cluster
+  hosts: localhost
+  gather_facts: false
+
+  vars_prompt:
+    - name: confirm
+      prompt: "⚠️  This will DELETE the Kind cluster and all data. Type 'yes' to confirm"
+      private: false
+
+  tasks:
+    - name: Abort if not confirmed
+      fail:
+        msg: "Teardown cancelled."
+      when: confirm != "yes"
+
+    # ── 1. Stop port-forwards ───────────────────────────────────────────────
+    - name: Stop all kubectl port-forwards
+      shell: "pkill -f 'kubectl port-forward' 2>/dev/null || true"
+      changed_when: false
+
+    # ── 2. Uninstall Helm releases ──────────────────────────────────────────
+    - name: Uninstall kube-prometheus-stack
+      command: helm uninstall kube-prometheus-stack -n monitoring
+      register: result
+      failed_when: result.rc != 0 and 'not found' not in result.stderr
+      changed_when: result.rc == 0
+
+    - name: Uninstall Argo CD
+      command: helm uninstall argocd -n argocd
+      register: result
+      failed_when: result.rc != 0 and 'not found' not in result.stderr
+      changed_when: result.rc == 0
+
+    # ── 3. Delete namespaces ────────────────────────────────────────────────
+    - name: Delete monitoring namespace
+      command: kubectl delete namespace monitoring --ignore-not-found=true
+      changed_when: false
+
+    - name: Delete argocd namespace
+      command: kubectl delete namespace argocd --ignore-not-found=true
+      changed_when: false
+
+    # ── 4. Delete Kind cluster ──────────────────────────────────────────────
+    - name: Delete Kind cluster
+      command: kind delete cluster --name "{{ kind_cluster_name }}"
+      register: result
+      failed_when: result.rc != 0 and 'not found' not in result.stderr
+      changed_when: result.rc == 0
+
+    - name: Done
+      debug:
+        msg:
+          - "✅ Cluster '{{ kind_cluster_name }}' and all resources have been removed."
+          - "   Run 'ansible-playbook site.yml' to rebuild from scratch."
