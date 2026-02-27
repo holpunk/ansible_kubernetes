@@ -1,0 +1,46 @@
+---
+# Port-forwards are long-running processes — run them in the background
+# with async + poll: 0 so the playbook doesn't block.
+
+- name: Kill any previous port-forward for ArgoCD (port 8080)
+  shell: "lsof -ti tcp:8080 | xargs kill -9 2>/dev/null || true"
+  changed_when: false
+
+- name: Kill any previous port-forward for Grafana (port 3000)
+  shell: "lsof -ti tcp:3000 | xargs kill -9 2>/dev/null || true"
+  changed_when: false
+
+- name: Kill any previous port-forward for Prometheus (port 9090)
+  shell: "lsof -ti tcp:9090 | xargs kill -9 2>/dev/null || true"
+  changed_when: false
+
+- name: Start port-forward — Argo CD (http://localhost:8080)
+  command: kubectl port-forward svc/argocd-server -n {{ argocd_namespace }} 8080:80
+  async: 86400   # keep alive up to 24 h
+  poll: 0        # fire and forget
+
+- name: Start port-forward — Grafana (http://localhost:3000)
+  command: kubectl port-forward svc/kube-prometheus-stack-grafana -n {{ monitoring_namespace }} 3000:80
+  async: 86400
+  poll: 0
+
+- name: Start port-forward — Prometheus (http://localhost:9090)
+  command: kubectl port-forward svc/kube-prometheus-stack-prometheus -n {{ monitoring_namespace }} 9090:9090
+  async: 86400
+  poll: 0
+
+- name: Wait a moment for port-forwards to establish
+  pause:
+    seconds: 3
+
+- name: Display service URLs
+  debug:
+    msg:
+      - "🚀 Port-forwards are running in the background!"
+      - ""
+      - "   Argo CD    → http://localhost:8080   (admin / see password above)"
+      - "   Grafana    → http://localhost:3000   (admin / admin123)"
+      - "   Prometheus → http://localhost:9090"
+      - ""
+      - "   NOTE: These port-forwards are tied to this shell session."
+      - "   They will stop when the terminal is closed or the cluster is deleted."

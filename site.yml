@@ -1,0 +1,47 @@
+---
+- name: Kubernetes Cluster Setup — Argo CD, Prometheus & Grafana
+  hosts: localhost
+  gather_facts: true
+
+  pre_tasks:
+    - name: Banner
+      debug:
+        msg:
+          - "╔══════════════════════════════════════════════════════════╗"
+          - "║  Local Kubernetes Cluster Setup with Ansible             ║"
+          - "║  Kind + Argo CD + Prometheus + Grafana                   ║"
+          - "╚══════════════════════════════════════════════════════════╝"
+
+  roles:
+    - role: prereqs
+      tags: [prereqs]
+
+    - role: kind_cluster
+      tags: [cluster]
+
+    - role: argocd
+      tags: [argocd]
+
+    - role: monitoring
+      tags: [monitoring]
+
+    - role: port_forwards
+      tags: [port_forwards]
+
+  post_tasks:
+    - name: Final summary
+      debug:
+        msg:
+          - "🎉 Setup complete! Your local Kubernetes stack is ready."
+          - ""
+          - "  ── Services are live (port-forwards running in background) ──"
+          - "  Argo CD    → http://localhost:8080   (admin / <see above>)"
+          - "  Grafana    → http://localhost:3000   (admin / admin123)"
+          - "  Prometheus → http://localhost:9090"
+          - ""
+          - "  ── Re-start port-forwards at any time ───────────────────────"
+          - "  ansible-playbook site.yml --tags port_forwards"
+          - ""
+          - "  ── Run individual roles with tags ────────────────────────────"
+          - "  ansible-playbook site.yml --tags argocd"
+          - "  ansible-playbook site.yml --tags monitoring"

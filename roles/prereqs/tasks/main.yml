@@ -1,0 +1,38 @@
+---
+- name: Install prerequisites via Homebrew
+  community.general.homebrew:
+    name: "{{ item }}"
+    state: present
+    update_homebrew: false
+  loop:
+    - kind
+    - helm
+    - kubectl
+
+- name: Check if Docker Desktop is installed
+  stat:
+    path: /Applications/Docker.app
+  register: docker_app
+
+- name: Remind user to start Docker Desktop
+  debug:
+    msg: >-
+      Docker Desktop is installed at /Applications/Docker.app.
+      Please make sure it is RUNNING before proceeding with cluster creation.
+  when: docker_app.stat.exists
+
+- name: Warn if Docker Desktop is NOT found
+  debug:
+    msg: >-
+      WARNING: Docker Desktop was not found at /Applications/Docker.app.
+      Please install Docker Desktop from https://www.docker.com/products/docker-desktop
+      and start it before running the kind_cluster role.
+  when: not docker_app.stat.exists
+
+- name: Wait for Docker daemon to become available
+  command: docker info
+  register: docker_info
+  until: docker_info.rc == 0
+  retries: 30
+  delay: 10
+  changed_when: false

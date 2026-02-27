@@ -1,0 +1,35 @@
+# ── Ansible ──────────────────────────────────────────────────
+*.retry
+.ansible/
+
+# ── Sensitive / secrets ───────────────────────────────────────
+*.vault
+vault_password_file
+.vault_pass
+*.pem
+*.key
+secrets.yml
+group_vars/*/vault.yml
+
+# ── Kubeconfig ────────────────────────────────────────────────
+kubeconfig
+*.kubeconfig
+.kube/
+
+# ── Kind / Kubernetes ─────────────────────────────────────────
+/tmp/kind-config-*.yaml
+
+# ── OS / Editor ───────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.env
+
+# ── Python (venvs / cache) ────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/

@@ -1,0 +1,39 @@
+---
+- name: Check if Kind cluster already exists
+  command: kind get clusters
+  register: kind_clusters
+  changed_when: false
+
+- name: Template Kind cluster config
+  template:
+    src: kind-config.yaml.j2
+    dest: /tmp/kind-config-{{ kind_cluster_name }}.yaml
+  when: kind_cluster_name not in kind_clusters.stdout_lines
+
+- name: Create Kind cluster
+  command: kind create cluster --config /tmp/kind-config-{{ kind_cluster_name }}.yaml --wait 5m
+  when: kind_cluster_name not in kind_clusters.stdout_lines
+  register: kind_create
+
+- name: Skip cluster creation (already exists)
+  debug:
+    msg: "Kind cluster '{{ kind_cluster_name }}' already exists — skipping creation."
+  when: kind_cluster_name in kind_clusters.stdout_lines
+
+- name: Set kubectl context to the Kind cluster
+  command: kubectl config use-context kind-{{ kind_cluster_name }}
+  changed_when: false
+
+- name: Verify all nodes are Ready
+  command: kubectl get nodes --no-headers
+  register: nodes_output
+  until: >
+    nodes_output.stdout_lines | select('search', 'NotReady') | list | length == 0
+    and nodes_output.stdout_lines | length > 0
+  retries: 20
+  delay: 15
+  changed_when: false
+
+- name: Show cluster nodes
+  debug:
+    msg: "{{ nodes_output.stdout_lines }}"

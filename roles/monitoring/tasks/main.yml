@@ -1,0 +1,100 @@
+---
+- name: Add Prometheus Community Helm repository
+  command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  changed_when: false
+
+- name: Update Helm repositories
+  command: helm repo update
+  changed_when: false
+
+- name: Create monitoring namespace
+  command: kubectl create namespace {{ monitoring_namespace }}
+  register: ns_result
+  failed_when: ns_result.rc != 0 and 'AlreadyExists' not in ns_result.stderr
+  changed_when: ns_result.rc == 0
+
+- name: Check for existing (possibly failed) kube-prometheus-stack release
+  command: helm list -n {{ monitoring_namespace }} --short
+  register: helm_releases
+  changed_when: false
+
+- name: Uninstall failed kube-prometheus-stack release if present
+  command: helm uninstall kube-prometheus-stack -n {{ monitoring_namespace }}
+  when: "'kube-prometheus-stack' in helm_releases.stdout"
+
+- name: Delete prometheus-operator CRDs for a clean slate
+  command: >
+    kubectl delete crd
+    alertmanagerconfigs.monitoring.coreos.com
+    alertmanagers.monitoring.coreos.com
+    podmonitors.monitoring.coreos.com
+    probes.monitoring.coreos.com
+    prometheusagents.monitoring.coreos.com
+    prometheuses.monitoring.coreos.com
+    prometheusrules.monitoring.coreos.com
+    scrapeconfigs.monitoring.coreos.com
+    servicemonitors.monitoring.coreos.com
+    thanosrulers.monitoring.coreos.com
+  register: crd_delete
+  failed_when: crd_delete.rc != 0 and 'NotFound' not in crd_delete.stderr
+  changed_when: crd_delete.rc == 0
+  when: "'kube-prometheus-stack' in helm_releases.stdout"
+
+- name: Install kube-prometheus-stack via Helm
+  command: >
+    helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack
+    --namespace {{ monitoring_namespace }}
+    --version {{ kube_prometheus_stack_version }}
+    --set grafana.adminPassword=admin123
+    --set prometheus.prometheusSpec.retention=7d
+    --wait
+    --timeout 15m
+  register: helm_result
+  retries: 3
+  delay: 15
+  until: helm_result.rc == 0
+
+- name: Wait for Grafana deployment to be available
+  command: >
+    kubectl rollout status deployment/kube-prometheus-stack-grafana
+    -n {{ monitoring_namespace }}
+    --timeout=300s
+  changed_when: false
+
+- name: Wait for kube-state-metrics deployment to be available
+  command: >
+    kubectl rollout status deployment/kube-prometheus-stack-kube-state-metrics
+    -n {{ monitoring_namespace }}
+    --timeout=300s
+  changed_when: false
+
+- name: Wait for Prometheus operator deployment to be available
+  command: >
+    kubectl rollout status deployment/kube-prometheus-stack-operator
+    -n {{ monitoring_namespace }}
+    --timeout=300s
+  changed_when: false
+
+- name: Wait for Prometheus StatefulSet to be available
+  command: >
+    kubectl rollout status statefulset/prometheus-kube-prometheus-stack-prometheus
+    -n {{ monitoring_namespace }}
+    --timeout=300s
+  changed_when: false
+
+- name: Wait for Alertmanager StatefulSet to be available
+  command: >
+    kubectl rollout status statefulset/alertmanager-kube-prometheus-stack-alertmanager
+    -n {{ monitoring_namespace }}
+    --timeout=300s
+  changed_when: false
+
+- name: Display monitoring access info
+  debug:
+    msg:
+      - "✅ Prometheus + Grafana are ready!"
+      - "   Grafana port-forward:      kubectl port-forward svc/kube-prometheus-stack-grafana -n {{ monitoring_namespace }} 3000:80"
+      - "   Grafana URL:               http://localhost:3000  (admin / admin123)"
+      - "   Prometheus port-forward:   kubectl port-forward svc/kube-prometheus-stack-prometheus -n {{ monitoring_namespace }} 9090:9090"
+      - "   Prometheus URL:            http://localhost:9090"
+      - "   Alertmanager port-forward: kubectl port-forward svc/kube-prometheus-stack-alertmanager -n {{ monitoring_namespace }} 9093:9093"
