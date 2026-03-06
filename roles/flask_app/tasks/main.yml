@@ -1,0 +1,21 @@
+---
+- name: Build Flask API Docker image
+  community.docker.docker_image:
+    name: flask-api-app
+    tag: latest
+    build:
+      path: "{{ playbook_dir }}/flask_app"
+    source: build
+  register: docker_build
+
+- name: Load image into Kind cluster
+  command: kind load docker-image flask-api-app:latest --name {{ kind_cluster_name }}
+  when: docker_build.changed
+
+- name: Apply Kubernetes manifests
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+  loop:
+    - "{{ playbook_dir }}/flask_app/k8s/deployment.yaml"
+    - "{{ playbook_dir }}/flask_app/k8s/service.yaml"

@@ -25,6 +25,9 @@
     - role: monitoring
       tags: [monitoring]
 
+    - role: flask_app
+      tags: [flask_app]
+
     - role: port_forwards
       tags: [port_forwards]
 
@@ -45,3 +48,4 @@
           - "  ── Run individual roles with tags ────────────────────────────"
           - "  ansible-playbook site.yml --tags argocd"
           - "  ansible-playbook site.yml --tags monitoring"
+          - "  ansible-playbook site.yml --tags flask_app"
