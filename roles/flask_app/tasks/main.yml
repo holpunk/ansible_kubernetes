@@ -12,6 +12,13 @@
   command: kind load docker-image flask-api-app:latest --name {{ kind_cluster_name }}
   when: docker_build.changed
 
+- name: Create flask-app namespace
+  kubernetes.core.k8s:
+    name: flask-app
+    api_version: v1
+    kind: Namespace
+    state: present
+
 - name: Apply Kubernetes manifests
   kubernetes.core.k8s:
     state: present
@@ -19,3 +26,4 @@
   loop:
     - "{{ playbook_dir }}/flask_app/k8s/deployment.yaml"
     - "{{ playbook_dir }}/flask_app/k8s/service.yaml"
+    - "{{ playbook_dir }}/flask_app/k8s/grafana-dashboard.yaml"
