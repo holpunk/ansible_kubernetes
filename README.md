@@ -9,11 +9,12 @@ Provision a local Kubernetes cluster and install Argo CD with a single Ansible c
 
 | Step | Role | Description |
 |------|------|-------------|
-| 1 | `prereqs` | Installs **kind**, **helm**, **kubectl** via Homebrew |
+| 1 | `prereqs` | Installs **Docker**, **kind**, **helm**, **kubectl** via `apt` (Automated installation & service start) |
 | 2 | `kind_cluster` | Creates a **Kind** cluster (1 control-plane + 2 workers) |
 | 3 | `argocd` | Installs **Argo CD** via Helm |
 
----
+> [!IMPORTANT]
+> This project is optimized for **WSL (Ubuntu)**. It handles the full installation of Docker and required tools if they are missing.
 
 ## 🚀 Quick Start
 
