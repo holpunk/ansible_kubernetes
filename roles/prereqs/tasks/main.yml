@@ -16,90 +16,121 @@
       - software-properties-common
     state: present
 
-# ── Docker Installation ──────────────────────────────────────────
-- name: Add Docker's official GPG key
-  become: true
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-
-- name: Add Docker repository
-  become: true
-  apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-    state: present
+# ── Docker Checks & Installation ──────────────────────────────────
+- name: Check if Docker is installed
+  command: which docker
+  register: docker_check
+  failed_when: false
+  changed_when: false
 
 - name: Install Docker Engine
-  become: true
-  apt:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-    state: present
+  block:
+    - name: Add Docker's official GPG key
+      become: true
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
 
-- name: Ensure docker group exists
-  become: true
-  group:
-    name: docker
-    state: present
+    - name: Add Docker repository
+      become: true
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
 
-- name: Add user to docker group
-  become: true
-  user:
-    name: "{{ ansible_user_id }}"
-    groups: docker
-    append: yes
+    - name: Install Docker packages
+      become: true
+      apt:
+        name: [docker-ce, docker-ce-cli, containerd.io]
+        state: present
 
-- name: Ensure Docker service is started (WSL support)
+    - name: Ensure docker group exists
+      become: true
+      group:
+        name: docker
+        state: present
+
+    - name: Add user to docker group
+      become: true
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+  when: docker_check.rc != 0
+
+- name: Ensure Docker service is started
   become: true
   service:
     name: docker
     state: started
     enabled: yes
 
-# ── Kubectl Installation ────────────────────────────────────────
-- name: Download Kubectl GPG key
-  become: true
-  get_url:
-    url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
-    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
-    mode: '0644'
-    force: true
-
-- name: Add Kubectl repository
-  become: true
-  apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
-    state: present
-    filename: kubernetes
+# ── Kubectl Checks & Installation ────────────────────────────────
+- name: Check if Kubectl is installed
+  command: which kubectl
+  register: kubectl_check
+  failed_when: false
+  changed_when: false
 
 - name: Install Kubectl
-  become: true
-  apt:
-    name: kubectl
-    state: present
+  block:
+    - name: Ensure keyrings directory exists
+      become: true
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
 
-# ── Helm Installation ──────────────────────────────────────────
-- name: Add Helm GPG key
-  become: true
-  apt_key:
-    url: https://baltocdn.com/helm/signing.asc
-    state: present
+    - name: Download Kubectl GPG key
+      become: true
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+        force: true
 
-- name: Add Helm repository
-  become: true
-  apt_repository:
-    repo: "deb https://baltocdn.com/helm/stable/debian/ all main"
-    state: present
+    - name: Add Kubectl repository
+      become: true
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Install Kubectl package
+      become: true
+      apt:
+        name: kubectl
+        state: present
+  when: kubectl_check.rc != 0
+
+# ── Helm Checks & Installation ──────────────────────────────────
+- name: Check if Helm is installed
+  command: which helm
+  register: helm_check
+  failed_when: false
+  changed_when: false
 
 - name: Install Helm
-  become: true
-  apt:
-    name: helm
-    state: present
+  block:
+    - name: Add Helm GPG key
+      become: true
+      apt_key:
+        url: https://baltocdn.com/helm/signing.asc
+        state: present
 
-# ── Kind Installation ──────────────────────────────────────────
+    - name: Add Helm repository
+      become: true
+      apt_repository:
+        repo: "deb https://baltocdn.com/helm/stable/debian/ all main"
+        state: present
+
+    - name: Install Helm package
+      become: true
+      apt:
+        name: helm
+        state: present
+  when: helm_check.rc != 0
+
+# ── Kind Checks & Installation ──────────────────────────────────
 - name: Check if Kind is installed
   command: which kind
   register: kind_check

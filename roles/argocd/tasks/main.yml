@@ -1,17 +1,28 @@
 ---
+- name: Check if Argo CD Helm repo is already added
+  command: helm repo list
+  register: helm_repos
+  changed_when: false
+  failed_when: false
+
 - name: Add Argo CD Helm repository
   command: helm repo add argo https://argoproj.github.io/argo-helm
-  changed_when: false
+  when: "'https://argoproj.github.io/argo-helm' not in helm_repos.stdout"
 
 - name: Update Helm repositories
   command: helm repo update
+  when: "'https://argoproj.github.io/argo-helm' not in helm_repos.stdout"
+  changed_when: false
+
+- name: Check if Argo CD namespace exists
+  command: kubectl get namespace {{ argocd_namespace }}
+  register: argocd_ns_check
+  failed_when: false
   changed_when: false
 
 - name: Create Argo CD namespace
   command: kubectl create namespace {{ argocd_namespace }}
-  register: ns_result
-  failed_when: ns_result.rc != 0 and 'AlreadyExists' not in ns_result.stderr
-  changed_when: ns_result.rc == 0
+  when: argocd_ns_check.rc != 0
 
 - name: Install / upgrade Argo CD via Helm
   command: >
