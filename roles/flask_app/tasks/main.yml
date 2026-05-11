@@ -26,4 +26,3 @@
   loop:
     - "{{ playbook_dir }}/flask_app/k8s/deployment.yaml"
     - "{{ playbook_dir }}/flask_app/k8s/service.yaml"
-    - "{{ playbook_dir }}/flask_app/k8s/grafana-dashboard.yaml"

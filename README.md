@@ -1,7 +1,7 @@
 # Ansible — Local Kubernetes Cluster
-## Kind · Argo CD · Prometheus · Grafana
+## Kind · Argo CD
 
-> Provision a fully-featured local Kubernetes cluster with a single Ansible command.
+> Provision a local Kubernetes cluster with a single Ansible command.
 
 ---
 
@@ -12,7 +12,6 @@
 | 1 | `prereqs` | Installs **kind**, **helm**, **kubectl** via Homebrew; waits for Docker daemon |
 | 2 | `kind_cluster` | Creates a **Kind** cluster (1 control-plane + 2 workers) |
 | 3 | `argocd` | Installs **Argo CD** via Helm (NodePort) and waits for all pods |
-| 4 | `monitoring` | Installs **kube-prometheus-stack** (Prometheus + Grafana + Alertmanager) via Helm |
 
 ---
 
@@ -32,17 +31,8 @@
 # 1. Install Ansible collections
 ansible-galaxy collection install -r requirements.yml
 
-# 2. Run the full playbook (~10–15 min)
+# 2. Run the full playbook (~5–10 min)
 ansible-playbook site.yml
-```
-
-### Run individual roles with tags
-
-```bash
-ansible-playbook site.yml --tags prereqs
-ansible-playbook site.yml --tags cluster
-ansible-playbook site.yml --tags argocd
-ansible-playbook site.yml --tags monitoring
 ```
 
 ---
@@ -56,28 +46,9 @@ kubectl port-forward svc/argocd-server -n argocd 8080:80
 → **http://localhost:8080** (no certificate warning)
 
 | | |
-|--|--|
+|---|---|
 | Username | `admin` |
 | Password | printed at end of playbook run |
-
-
-### Grafana
-```bash
-kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
-```
-→ **http://localhost:3000** · `admin` / `admin123`
-
-### Prometheus
-```bash
-kubectl port-forward svc/kube-prometheus-stack-prometheus -n monitoring 9090:9090
-```
-→ **http://localhost:9090**
-
-### Alertmanager
-```bash
-kubectl port-forward svc/kube-prometheus-stack-alertmanager -n monitoring 9093:9093
-```
-→ **http://localhost:9093**
 
 ---
 
@@ -91,8 +62,6 @@ Edit [`group_vars/all.yml`](group_vars/all.yml) to customise:
 | `kind_k8s_image` | `kindest/node:v1.29.2` | Kubernetes version |
 | `argocd_namespace` | `argocd` | ArgoCD namespace |
 | `argocd_chart_version` | `7.1.3` | Argo CD Helm chart version |
-| `monitoring_namespace` | `monitoring` | Prometheus + Grafana namespace |
-| `kube_prometheus_stack_version` | `58.7.2` | kube-prometheus-stack chart version (K8s 1.29 compatible) |
 
 ---
 
@@ -110,8 +79,7 @@ ansible_kubernetes/
     ├── kind_cluster/
     │   ├── tasks/main.yml                 # Create Kind cluster
     │   └── templates/kind-config.yaml.j2
-    ├── argocd/tasks/main.yml              # Install Argo CD
-    └── monitoring/tasks/main.yml          # Install Prometheus + Grafana
+    └── argocd/tasks/main.yml              # Install Argo CD
 ```
 
 ---

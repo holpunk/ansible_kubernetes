@@ -1,5 +1,5 @@
 ---
-- name: Kubernetes Cluster Setup — Argo CD, Prometheus & Grafana
+- name: Kubernetes Cluster Setup — Argo CD
   hosts: localhost
   gather_facts: true
 
@@ -9,7 +9,7 @@
         msg:
           - "╔══════════════════════════════════════════════════════════╗"
           - "║  Local Kubernetes Cluster Setup with Ansible             ║"
-          - "║  Kind + Argo CD + Prometheus + Grafana                   ║"
+          - "║  Kind + Argo CD                                          ║"
           - "╚══════════════════════════════════════════════════════════╝"
 
   roles:
@@ -21,9 +21,6 @@
 
     - role: argocd
       tags: [argocd]
-
-    - role: monitoring
-      tags: [monitoring]
 
     - role: flask_app
       tags: [flask_app]
@@ -39,13 +36,10 @@
           - ""
           - "  ── Services are live (port-forwards running in background) ──"
           - "  Argo CD    → http://localhost:8080   (admin / <see above>)"
-          - "  Grafana    → http://localhost:3000   (admin / admin123)"
-          - "  Prometheus → http://localhost:9090"
           - ""
           - "  ── Re-start port-forwards at any time ───────────────────────"
           - "  ansible-playbook site.yml --tags port_forwards"
           - ""
           - "  ── Run individual roles with tags ────────────────────────────"
           - "  ansible-playbook site.yml --tags argocd"
-          - "  ansible-playbook site.yml --tags monitoring"
           - "  ansible-playbook site.yml --tags flask_app"
