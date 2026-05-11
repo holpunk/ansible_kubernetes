@@ -22,24 +22,16 @@
     - role: argocd
       tags: [argocd]
 
-    - role: flask_app
-      tags: [flask_app]
-
-    - role: port_forwards
-      tags: [port_forwards]
-
   post_tasks:
     - name: Final summary
       debug:
         msg:
           - "🎉 Setup complete! Your local Kubernetes stack is ready."
           - ""
-          - "  ── Services are live (port-forwards running in background) ──"
-          - "  Argo CD    → http://localhost:8080   (admin / <see above>)"
+          - "  Argo CD    → http://localhost:8080   (after port-forwarding)"
           - ""
-          - "  ── Re-start port-forwards at any time ───────────────────────"
-          - "  ansible-playbook site.yml --tags port_forwards"
+          - "  To access Argo CD, run:"
+          - "  kubectl port-forward svc/argocd-server -n argocd 8080:80"
           - ""
           - "  ── Run individual roles with tags ────────────────────────────"
           - "  ansible-playbook site.yml --tags argocd"
-          - "  ansible-playbook site.yml --tags flask_app"

@@ -19,13 +19,6 @@
       shell: "pkill -f 'kubectl port-forward' 2>/dev/null || true"
       changed_when: false
 
-    # ── 2. Uninstall Helm releases ──────────────────────────────────────────
-    - name: Uninstall kube-prometheus-stack
-      command: helm uninstall kube-prometheus-stack -n monitoring
-      register: result
-      failed_when: result.rc != 0 and 'not found' not in result.stderr
-      changed_when: result.rc == 0
-
     - name: Uninstall Argo CD
       command: helm uninstall argocd -n argocd
       register: result
@@ -33,10 +26,6 @@
       changed_when: result.rc == 0
 
     # ── 3. Delete namespaces ────────────────────────────────────────────────
-    - name: Delete monitoring namespace
-      command: kubectl delete namespace monitoring --ignore-not-found=true
-      changed_when: false
-
     - name: Delete argocd namespace
       command: kubectl delete namespace argocd --ignore-not-found=true
       changed_when: false
